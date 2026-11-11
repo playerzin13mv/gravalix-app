@@ -32,7 +32,8 @@ import kotlin.math.min
 
 /**
  * Serviço em primeiro plano que controla a gravação:
- * contagem regressiva, botão flutuante, notificação, pausar/continuar e parar.
+ * contagem regressiva, notificação, pausar/continuar, parar, agitar para parar
+ * e "mostrar toques". Os botões na tela ficam com o [BubbleService].
  */
 class RecorderService : Service() {
 
@@ -43,10 +44,6 @@ class RecorderService : Service() {
 
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
-        const val EXTRA_AUDIO_MODE = "audio_mode"
-        const val EXTRA_QUALITY = "quality"
-        const val EXTRA_SHOW_BUTTON = "show_button"
-        const val EXTRA_LANDSCAPE = "landscape"
 
         const val AUDIO_NONE = 0
         const val AUDIO_INTERNAL = 1
@@ -62,8 +59,13 @@ class RecorderService : Service() {
         private const val NOTIF_ID = 1001
         private const val NOTIF_DONE_ID = 1002
 
-        /** Verdadeiro desde o toque em Iniciar até o vídeo ser salvo. */
+        /** Verdadeiro desde o início (contagem incluída) até o vídeo ser salvo. */
         @Volatile var isActive = false
+
+        /** Verdadeiro só enquanto está de fato gravando (depois da contagem). */
+        @Volatile var isRecording = false
+
+        @Volatile var isPaused = false
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -71,26 +73,18 @@ class RecorderService : Service() {
     private var projection: MediaProjection? = null
     private var projectionCallback: MediaProjection.Callback? = null
     private var recorder: ScreenRecorder? = null
-    private var overlay: FloatingControls? = null
 
     private var countdownView: TextView? = null
     private var countdownTick: Runnable? = null
     private var pendingStart: Runnable? = null
 
+    private var shake: ShakeDetector? = null
+    private var touchesBefore: Boolean? = null // estado do sistema antes de a gente mexer
+
     private var stopping = false
-    private var paused = false
     private var audioMode = AUDIO_NONE
     private var quality = QUALITY_FHD
-    private var showButton = true
     private var landscape = false
-
-    private val ticker = object : Runnable {
-        override fun run() {
-            val rec = recorder
-            if (rec != null) overlay?.setTime(rec.elapsedMs())
-            handler.postDelayed(this, 500)
-        }
-    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -107,8 +101,7 @@ class RecorderService : Service() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         removeCountdownView()
-        overlay?.remove()
-        overlay = null
+        cleanupExtras()
         val rec = recorder
         recorder = null
         if (rec != null) {
@@ -120,6 +113,8 @@ class RecorderService : Service() {
         try { projection?.stop() } catch (_: Exception) {}
         projection = null
         isActive = false
+        isRecording = false
+        isPaused = false
         super.onDestroy()
     }
 
@@ -138,12 +133,12 @@ class RecorderService : Service() {
 
         val code = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
         val data = readProjectionData(intent)
-        audioMode = intent.getIntExtra(EXTRA_AUDIO_MODE, AUDIO_INTERNAL)
-        quality = intent.getIntExtra(EXTRA_QUALITY, QUALITY_FHD)
-        showButton = intent.getBooleanExtra(EXTRA_SHOW_BUTTON, true)
-        landscape = intent.getBooleanExtra(EXTRA_LANDSCAPE, false)
+        audioMode = Prefs.audio(this)
+        quality = Prefs.quality(this)
+        landscape = Prefs.landscape(this)
         stopping = false
-        paused = false
+        isPaused = false
+        isRecording = false
 
         createChannels()
 
@@ -188,14 +183,21 @@ class RecorderService : Service() {
             return
         }
 
-        runCountdown(Runnable { beginRecording() })
+        val seconds = Prefs.countdown(this)
+        if (seconds <= 0) {
+            val go = Runnable { beginRecording() }
+            pendingStart = go
+            handler.post(go)
+        } else {
+            runCountdown(seconds, Runnable { beginRecording() })
+        }
     }
 
-    private fun runCountdown(onDone: Runnable) {
+    private fun runCountdown(seconds: Int, onDone: Runnable) {
         if (!Settings.canDrawOverlays(this)) {
-            toast(getString(R.string.toast_starting_3))
+            toast(getString(R.string.toast_starting_n, seconds))
             pendingStart = onDone
-            handler.postDelayed(onDone, 3000)
+            handler.postDelayed(onDone, seconds * 1000L)
             return
         }
 
@@ -220,12 +222,12 @@ class RecorderService : Service() {
             wm.addView(tv, lp)
         } catch (e: Exception) {
             pendingStart = onDone
-            handler.postDelayed(onDone, 3000)
+            handler.postDelayed(onDone, seconds * 1000L)
             return
         }
         countdownView = tv
 
-        var n = 3
+        var n = seconds
         val tick = object : Runnable {
             override fun run() {
                 if (n > 0) {
@@ -325,30 +327,36 @@ class RecorderService : Service() {
         }
 
         recorder = started
-        paused = false
+        isPaused = false
+        isRecording = true
         notificationManager().notify(NOTIF_ID, buildNotification(false))
 
-        if (showButton && Settings.canDrawOverlays(this)) {
-            val controls = FloatingControls(
-                this,
-                true,
-                { togglePause() },
-                { stopRecording() }
-            )
-            controls.show()
-            overlay = controls
+        // "Mostrar toques": liga no sistema enquanto grava (precisa da permissão especial)
+        if (Prefs.showTouches(this) && TouchIndicator.canToggle(this)) {
+            touchesBefore = TouchIndicator.isOn(this)
+            TouchIndicator.set(this, true)
         }
-        handler.post(ticker)
+
+        // Agitar para parar
+        if (Prefs.shakeStop(this)) {
+            shake = ShakeDetector(this) { handler.post { stopRecording() } }.also { it.start() }
+        }
+    }
+
+    private fun cleanupExtras() {
+        shake?.stop()
+        shake = null
+        touchesBefore?.let { TouchIndicator.set(this, it) }
+        touchesBefore = null
     }
 
     // ----------------------------------------------------------- pausar / parar
 
     private fun togglePause() {
         val rec = recorder ?: return
-        if (paused) rec.resume() else rec.pause()
-        paused = !paused
-        overlay?.setPaused(paused)
-        notificationManager().notify(NOTIF_ID, buildNotification(paused))
+        if (isPaused) rec.resume() else rec.pause()
+        isPaused = !isPaused
+        notificationManager().notify(NOTIF_ID, buildNotification(isPaused))
     }
 
     private fun stopRecording() {
@@ -358,12 +366,12 @@ class RecorderService : Service() {
         pendingStart?.let { handler.removeCallbacks(it) }
         pendingStart = null
         removeCountdownView()
-        handler.removeCallbacks(ticker)
-        overlay?.remove()
-        overlay = null
+        cleanupExtras()
 
         val rec = recorder
         recorder = null
+        isRecording = false
+        isPaused = false
         if (rec == null) {
             finishUp(null)
             return
@@ -379,10 +387,8 @@ class RecorderService : Service() {
     }
 
     private fun finishUp(uri: Uri?) {
-        handler.removeCallbacks(ticker)
         removeCountdownView()
-        overlay?.remove()
-        overlay = null
+        cleanupExtras()
 
         projectionCallback?.let { cb -> projection?.unregisterCallback(cb) }
         try { projection?.stop() } catch (_: Exception) {}
@@ -390,6 +396,8 @@ class RecorderService : Service() {
         projectionCallback = null
 
         isActive = false
+        isRecording = false
+        isPaused = false
         stopForeground(STOP_FOREGROUND_REMOVE)
 
         if (uri != null) {
@@ -463,7 +471,7 @@ class RecorderService : Service() {
 
     private fun showSavedNotification() {
         val open = PendingIntent.getActivity(
-            this, 3, Intent(this, RecordingsActivity::class.java),
+            this, 3, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = Notification.Builder(this, CHANNEL_DONE)

@@ -3,7 +3,6 @@
     <string name="app_name">Gravalix</string>
     <string name="tagline">Gravador de tela sem marca d’água</string>
 
-    <string name="section_audio">Áudio da gravação</string>
     <string name="audio_internal">Som do telefone</string>
     <string name="audio_mic">Microfone</string>
     <string name="audio_both">Som do telefone + microfone</string>
@@ -14,18 +13,10 @@
     <string name="quality_fhd">Full HD 1080p · 30 fps</string>
     <string name="quality_fhd60">Full HD 1080p · 60 fps</string>
 
-    <string name="section_options">Opções</string>
-    <string name="opt_floating">Botão flutuante durante a gravação</string>
-    <string name="opt_floating_hint">Aparece por cima dos apps para pausar e parar. O Gravalix tenta escondê-lo do vídeo final. Se desligar, use a notificação para controlar.</string>
-    <string name="opt_landscape">Gravar na horizontal (jogos)</string>
-    <string name="opt_landscape_hint">Ligue se for gravar um jogo ou app em tela deitada.</string>
 
     <string name="btn_start">Iniciar gravação</string>
     <string name="btn_stop">Parar gravação</string>
-    <string name="btn_recordings">Minhas gravações</string>
-    <string name="tip_text">Dica: ao tocar em Iniciar, o Gravalix volta para a tela inicial e começa a gravar depois de uma contagem de 3 segundos.</string>
 
-    <string name="need_overlay">Permita “Exibir sobre outros apps” para o Gravalix e depois toque em Iniciar de novo.</string>
     <string name="need_mic">Sem a permissão de microfone/áudio não dá para gravar o som. Permita ou escolha “Mudo”.</string>
     <string name="projection_denied">Gravação cancelada.</string>
 
@@ -53,8 +44,55 @@
     <string name="notif_saved_text">Toque para ver em Minhas gravações.</string>
 
     <string name="toast_saved">Gravação salva em Filmes/Gravalix</string>
-    <string name="toast_starting_3">A gravação começa em 3 segundos…</string>
     <string name="toast_error_start">Não foi possível iniciar a gravação neste aparelho.</string>
     <string name="toast_audio_unavailable">Não foi possível capturar o áudio. Gravando sem som.</string>
     <string name="toast_error_play">Não foi possível reproduzir este vídeo.</string>
+
+    <string name="section_audio">Áudio da gravação</string>
+    <string name="section_options">Outras opções</string>
+
+    <string name="btn_settings">Configurações</string>
+    <string name="settings_title">Configurações</string>
+
+    <string name="opt_bubble">Bolha flutuante</string>
+    <string name="opt_bubble_hint">Aparece por cima dos apps antes de gravar. Toque nela para gravar, pausar, usar a caneta e mostrar toques.</string>
+    <string name="need_overlay">Permita “Exibir sobre outros apps” para o Gravalix. Depois volte e toque em Iniciar de novo.</string>
+    <string name="need_overlay_bubble">Para a bolha aparecer, permita “Exibir sobre outros apps” para o Gravalix.</string>
+
+    <string name="section_countdown">Contagem antes de gravar</string>
+    <string name="countdown_off">Sem contagem (começa na hora)</string>
+    <string name="countdown_3">3 segundos</string>
+    <string name="countdown_5">5 segundos</string>
+    <string name="countdown_10">10 segundos</string>
+    <string name="toast_starting_n">A gravação começa em %1$d segundos…</string>
+
+    <string name="section_bubble">Bolha durante a gravação</string>
+    <string name="bubble_mode_title">O que fazer com a bolha enquanto grava:</string>
+    <string name="bubble_hidden">Continua na tela, mas escondida do vídeo</string>
+    <string name="bubble_gone">Some totalmente (controle pela notificação ou painel rápido)</string>
+    <string name="bubble_mode_hint">A bolha usa a proteção do Android para ficar fora do vídeo. Em alguns celulares isso deixa um quadrado preto no lugar. Se acontecer com o seu, escolha “Some totalmente”.</string>
+
+    <string name="section_pen">Caneta (desenhar na tela)</string>
+    <string name="opt_pen_fade">Traços somem sozinhos</string>
+    <string name="opt_pen_fade_hint">Cada traço desaparece depois de uns 4 segundos. Bom para circular coisas durante a gravação. O desenho aparece no vídeo.</string>
+
+    <string name="section_touches">Mostrar toques</string>
+    <string name="opt_touches">Mostrar toques no vídeo</string>
+    <string name="opt_touches_hint">Mostra um círculo onde o dedo toca na tela. Também dá para ligar pela bolha.</string>
+    <string name="touch_status_ok">Permissão especial ativa: o Gravalix liga e desliga os toques sozinho.</string>
+    <string name="touch_status_no">O Android só deixa um app ligar os toques com uma permissão especial, liberada uma vez pelo comando do README (ativar-toques.sh). Sem ela, ligue “Mostrar toques” nas Opções do desenvolvedor.</string>
+    <string name="btn_open_dev">Abrir Opções do desenvolvedor</string>
+    <string name="touch_manual">Ligue “Mostrar toques” nas Opções do desenvolvedor (ou libere a permissão do README para o Gravalix fazer isso sozinho).</string>
+
+    <string name="opt_landscape">Gravar na horizontal (jogos)</string>
+    <string name="opt_landscape_hint">Ligue se for gravar um jogo ou app em tela deitada.</string>
+    <string name="opt_shake">Agitar para parar</string>
+    <string name="opt_shake_hint">Sacuda o celular 3 vezes para parar a gravação, sem precisar de botão na tela.</string>
+    <string name="tile_tip">Dica: adicione o “Gravalix” no painel rápido (puxe a barra de cima e edite os botões). Ele inicia e para a gravação sem aparecer no vídeo.</string>
+    <string name="tile_start">Gravar tela</string>
+    <string name="tile_stop">Parar gravação</string>
+
+    <string name="notif_channel_bubble">Bolha flutuante</string>
+    <string name="notif_bubble_on">Bolha ligada</string>
+    <string name="notif_bubble_close">Fechar bolha</string>
 </resources>

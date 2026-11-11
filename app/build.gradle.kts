@@ -15,7 +15,7 @@ android {
         // No GitHub Actions o número da compilação vira o versionCode,
         // assim cada APK novo consegue atualizar o anterior.
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "1.0.0"
+        versionName = "2.0.0"
     }
 
     // Chave fixa: todo APK compilado tem a mesma assinatura e pode ser atualizado
