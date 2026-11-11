@@ -21,11 +21,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # O GitHub já traz o Android SDK instalado. Este passo só aceita as licenças
+      # e nunca derruba a compilação (se algo faltar, o Gradle baixa sozinho).
       - name: Preparar o Android SDK
+        continue-on-error: true
         run: |
-          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" || true
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Preparar o Gradle
         uses: gradle/actions/setup-gradle@v4

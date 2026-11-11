@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
@@ -15,29 +16,42 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.util.DisplayMetrics
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.LinearLayout
+import android.widget.Toast
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sqrt
 
 /**
- * Bolha flutuante do Gravalix. Fica por cima dos apps ANTES e DURANTE a gravação.
+ * Bolha flutuante do Gravalix. Fica por cima dos apps ANTES e DEPOIS da gravação
+ * (durante a gravação ela some, por padrão, para nunca aparecer no vídeo).
  *
- * Toque na bolha para abrir o menu: gravar/parar, pausar, caneta, mostrar toques,
- * abrir o app e fechar a bolha. Dá para arrastar.
- *
- * Durante a gravação, a bolha e a barra da caneta usam FLAG_SECURE: o Android não
- * as inclui no vídeo. O desenho da caneta, ao contrário, aparece de propósito.
+ * - Fica encaixada só nas laterais da tela; ao soltar, ela gruda na borda mais perto.
+ * - Ao arrastar aparece uma lixeira embaixo: solte a bolha nela para fechá-la.
+ * - Toque na bolha para abrir o menu: gravar/parar, pausar, caneta, toques, abrir app, fechar.
+ * - Tamanho, opacidade, cor e botões do menu são configuráveis.
  */
 class BubbleService : Service() {
 
     companion object {
         const val ACTION_CLOSE = "com.gravalix.app.BUBBLE_CLOSE"
+        const val ACTION_RELOAD = "com.gravalix.app.BUBBLE_RELOAD"
         private const val CHANNEL = "gravalix_bubble"
         private const val NOTIF_ID = 1003
+
+        /** Cores da bolha: roxo, vermelho, verde, azul, laranja, cinza. */
+        val COLORS = intArrayOf(
+            0xFF8781FF.toInt(), 0xFFFF5470.toInt(), 0xFF30D158.toInt(),
+            0xFF0A84FF.toInt(), 0xFFFF9F0A.toInt(), 0xFF48484A.toInt()
+        )
+        private val SIZES_DP = intArrayOf(44, 56, 68)
+        private val ALPHAS = floatArrayOf(1f, 0.8f, 0.6f, 0.4f)
 
         @Volatile var isRunning = false
 
@@ -51,6 +65,15 @@ class BubbleService : Service() {
 
         fun stop(c: Context) {
             c.stopService(Intent(c, BubbleService::class.java))
+        }
+
+        /** Aplica na hora o que mudou na personalização. */
+        fun reload(c: Context) {
+            if (!isRunning) return
+            try {
+                c.startService(Intent(c, BubbleService::class.java).setAction(ACTION_RELOAD))
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -70,14 +93,17 @@ class BubbleService : Service() {
     private lateinit var closeBtn: IconButton
     private lateinit var params: WindowManager.LayoutParams
     private var expanded = false
+    private var dockRight = true
+
+    // lixeira (aparece só enquanto arrasta)
+    private var trash: IconButton? = null
+    private var trashHot = false
 
     // caneta
     private var canvas: PenCanvas? = null
     private var canvasParams: WindowManager.LayoutParams? = null
     private var toolbar: LinearLayout? = null
     private var toolbarParams: WindowManager.LayoutParams? = null
-    private var colorBtn: IconButton? = null
-    private var fadeBtn: IconButton? = null
     private var modeBtn: IconButton? = null
     private var penOn = false
     private var passThrough = false
@@ -107,10 +133,16 @@ class BubbleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_CLOSE) {
-            Prefs.setBubble(this, false)
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_CLOSE -> {
+                Prefs.setBubble(this, false)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_RELOAD -> {
+                if (root != null) rebuild()
+                return START_STICKY
+            }
         }
         if (!Settings.canDrawOverlays(this) || (intent == null && !Prefs.bubble(this))) {
             stopSelf()
@@ -124,8 +156,14 @@ class BubbleService : Service() {
         return START_STICKY
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        handler.postDelayed({ clampY() }, 300)
+    }
+
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        hideTrash()
         hidePen()
         root?.let { removeWindow(it) }
         root = null
@@ -134,6 +172,13 @@ class BubbleService : Service() {
     }
 
     private fun dp(v: Int): Int = (v * density + 0.5f).toInt()
+
+    private fun screen(): IntArray {
+        val dm = DisplayMetrics()
+        @Suppress("DEPRECATION")
+        wm.defaultDisplay.getRealMetrics(dm)
+        return intArrayOf(dm.widthPixels, dm.heightPixels)
+    }
 
     // ---------------------------------------------------------------- notificação
 
@@ -178,6 +223,7 @@ class BubbleService : Service() {
         return f
     }
 
+    /** Só usado no modo experimental "tentar esconder do vídeo". */
     private fun wantSecure(): Boolean =
         RecorderService.isActive && Prefs.bubbleMode(this) == Prefs.BUBBLE_HIDDEN_FROM_VIDEO
 
@@ -204,15 +250,22 @@ class BubbleService : Service() {
 
     // -------------------------------------------------------------------- bolha
 
+    private fun baseColor(): Int {
+        val c = COLORS[Prefs.bubbleColor(this).coerceIn(0, COLORS.size - 1)]
+        return (c and 0x00FFFFFF) or 0xE6000000.toInt()
+    }
+
     private fun buildBubble() {
+        dockRight = Prefs.bubbleRight(this)
         val r = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(4), dp(4), dp(4), dp(4))
         }
+        root = r
 
-        bubbleBtn = IconButton(this, IconButton.CAMERA, 0xE68781FF.toInt())
-        r.addView(bubbleBtn, LinearLayout.LayoutParams(dp(52), dp(52)))
+        bubbleBtn = IconButton(this, IconButton.CAMERA, baseColor())
+        bubbleBtn.alpha = ALPHAS[Prefs.bubbleAlpha(this).coerceIn(0, ALPHAS.size - 1)]
         bubbleBtn.setOnTouchListener(DragTap())
 
         recBtn = menuButton(IconButton.REC) { onRecClick() }
@@ -232,15 +285,14 @@ class BubbleService : Service() {
             Prefs.setBubble(this, false)
             stopSelf()
         }
-        for (b in listOf(recBtn, pauseBtn, penBtn, touchBtn, homeBtn, closeBtn)) {
-            r.addView(b, LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginStart = dp(6) })
-            b.visibility = View.GONE
-        }
+        for (b in listOf(recBtn, pauseBtn, penBtn, touchBtn, homeBtn, closeBtn)) b.visibility = View.GONE
+
         penBtn.tint = PenCanvas.COLORS[Prefs.penColor(this) % PenCanvas.COLORS.size]
+        penBtn.active = penOn
         touchBtn.active = Prefs.showTouches(this)
 
-        val sw = resources.displayMetrics.widthPixels
-        val sx = Prefs.bubbleX(this)
+        layoutChildren()
+
         val sy = Prefs.bubbleY(this)
         params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -249,14 +301,41 @@ class BubbleService : Service() {
             baseFlags(wantSecure()),
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = if (sx >= 0) sx else sw - dp(64)
+            gravity = Gravity.TOP or (if (dockRight) Gravity.END else Gravity.START)
+            x = 0
             y = if (sy >= 0) sy else dp(220)
         }
-        root = r
         addWindow(r, params)
         firstRun = true
         refresh()
+        clampSoon()
+    }
+
+    /** Recria a bolha (usado quando a personalização muda). */
+    private fun rebuild() {
+        handler.removeCallbacks(autoCollapse)
+        hideTrash()
+        root?.let { removeWindow(it) }
+        root = null
+        expanded = false
+        buildBubble()
+    }
+
+    /** Bolha no lado de dentro e o menu abrindo para o lado de fora da tela. */
+    private fun layoutChildren() {
+        val r = root ?: return
+        r.removeAllViews()
+        val size = dp(SIZES_DP[Prefs.bubbleSize(this).coerceIn(0, SIZES_DP.size - 1)])
+        val menu = listOf(recBtn, pauseBtn, penBtn, touchBtn, homeBtn, closeBtn)
+        val ordered = if (dockRight) menu.reversed() else menu
+        if (!dockRight) r.addView(bubbleBtn, LinearLayout.LayoutParams(size, size))
+        for (b in ordered) {
+            r.addView(b, LinearLayout.LayoutParams(dp(44), dp(44)).apply {
+                marginStart = dp(3)
+                marginEnd = dp(3)
+            })
+        }
+        if (dockRight) r.addView(bubbleBtn, LinearLayout.LayoutParams(size, size))
     }
 
     private fun menuButton(icon: Int, click: () -> Unit): IconButton {
@@ -276,12 +355,11 @@ class BubbleService : Service() {
     private fun setExpanded(value: Boolean) {
         expanded = value
         val r = root ?: return
-        val vis = if (value) View.VISIBLE else View.GONE
-        recBtn.visibility = vis
-        penBtn.visibility = vis
-        touchBtn.visibility = vis
-        homeBtn.visibility = vis
-        closeBtn.visibility = vis
+        recBtn.visibility = if (value) View.VISIBLE else View.GONE
+        penBtn.visibility = if (value && Prefs.menuPen(this)) View.VISIBLE else View.GONE
+        touchBtn.visibility = if (value && Prefs.menuTouches(this)) View.VISIBLE else View.GONE
+        homeBtn.visibility = if (value && Prefs.menuHome(this)) View.VISIBLE else View.GONE
+        closeBtn.visibility = if (value) View.VISIBLE else View.GONE
         pauseBtn.visibility = if (value && RecorderService.isRecording) View.VISIBLE else View.GONE
         r.background = if (value) {
             GradientDrawable().apply {
@@ -291,24 +369,29 @@ class BubbleService : Service() {
         } else {
             null
         }
-        r.post { clampToScreen() }
+        clampSoon()
         scheduleCollapse()
     }
 
-    private fun clampToScreen() {
+    /** Mantém a bolha dentro da tela (só na vertical: na horizontal ela já fica na borda). */
+    private fun clampY() {
         val r = root ?: return
-        val sw = resources.displayMetrics.widthPixels
-        val sh = resources.displayMetrics.heightPixels
-        val w = r.width
-        val h = r.height
-        if (w == 0) return
-        params.x = params.x.coerceIn(0, maxOf(0, sw - w))
-        params.y = params.y.coerceIn(0, maxOf(0, sh - h))
-        updateWindow(r, params)
+        if (r.height == 0) return
+        val sh = screen()[1]
+        val ny = params.y.coerceIn(0, max(0, sh - r.height))
+        if (ny != params.y) {
+            params.y = ny
+            updateWindow(r, params)
+        }
+    }
+
+    private fun clampSoon() {
+        handler.postDelayed({ clampY() }, 80)
+        handler.postDelayed({ clampY() }, 300)
     }
 
     private inner class DragTap : View.OnTouchListener {
-        private var startX = 0
+        private var baseLeft = 0
         private var startY = 0
         private var touchX = 0f
         private var touchY = 0f
@@ -318,7 +401,9 @@ class BubbleService : Service() {
             val r = root ?: return false
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    startX = params.x
+                    val loc = IntArray(2)
+                    bubbleBtn.getLocationOnScreen(loc)
+                    baseLeft = loc[0] - dp(4) // posição da bolha, sem contar o menu
                     startY = params.y
                     touchX = e.rawX
                     touchY = e.rawY
@@ -328,19 +413,35 @@ class BubbleService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = e.rawX - touchX
                     val dy = e.rawY - touchY
-                    if (!moved && (abs(dx) > slop || abs(dy) > slop)) moved = true
+                    if (!moved && (abs(dx) > slop || abs(dy) > slop)) {
+                        moved = true
+                        // começa a arrastar: fecha o menu e passa a posicionar pela esquerda
+                        handler.removeCallbacks(autoCollapse)
+                        expanded = false
+                        recBtn.visibility = View.GONE
+                        pauseBtn.visibility = View.GONE
+                        penBtn.visibility = View.GONE
+                        touchBtn.visibility = View.GONE
+                        homeBtn.visibility = View.GONE
+                        closeBtn.visibility = View.GONE
+                        r.background = null
+                        params.gravity = Gravity.TOP or Gravity.START
+                        showTrash()
+                    }
                     if (moved) {
-                        params.x = startX + dx.toInt()
+                        params.x = baseLeft + dx.toInt()
                         params.y = startY + dy.toInt()
                         updateWindow(r, params)
+                        updateTrash()
                     }
                     return true
                 }
-                MotionEvent.ACTION_UP -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (moved) {
-                        clampToScreen()
-                        Prefs.setBubblePos(this@BubbleService, params.x, params.y)
-                    } else {
+                        val over = e.actionMasked == MotionEvent.ACTION_UP && isOverTrash()
+                        hideTrash()
+                        if (over) removeBubble() else snapToSide()
+                    } else if (e.actionMasked == MotionEvent.ACTION_UP) {
                         setExpanded(!expanded)
                     }
                     return true
@@ -348,6 +449,80 @@ class BubbleService : Service() {
             }
             return false
         }
+    }
+
+    /** Ao soltar, a bolha gruda na lateral mais perto. */
+    private fun snapToSide() {
+        val r = root ?: return
+        val sw = screen()[0]
+        val centerX = params.x + dp(4) + bubbleBtn.width / 2
+        dockRight = centerX > sw / 2
+        layoutChildren()
+        params.gravity = Gravity.TOP or (if (dockRight) Gravity.END else Gravity.START)
+        params.x = 0
+        updateWindow(r, params)
+        clampY()
+        Prefs.setBubbleSide(this, dockRight)
+        Prefs.setBubbleY(this, params.y)
+        clampSoon()
+    }
+
+    // ------------------------------------------------------------------ lixeira
+
+    private fun showTrash() {
+        if (trash != null) return
+        val t = IconButton(this, IconButton.TRASH, TRASH_COLOR)
+        val p = WindowManager.LayoutParams(
+            dp(64),
+            dp(64),
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            baseFlags(wantSecure()) or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = dp(56)
+        }
+        trash = t
+        trashHot = false
+        addWindow(t, p)
+    }
+
+    private val TRASH_COLOR = 0xE62C2A45.toInt()
+
+    private fun hideTrash() {
+        trash?.let { removeWindow(it) }
+        trash = null
+        trashHot = false
+    }
+
+    private fun isOverTrash(): Boolean {
+        val s = screen()
+        val tx = s[0] / 2
+        val ty = s[1] - dp(56) - dp(32)
+        val loc = IntArray(2)
+        bubbleBtn.getLocationOnScreen(loc)
+        val bx = loc[0] + bubbleBtn.width / 2
+        val by = loc[1] + bubbleBtn.height / 2
+        val dx = (bx - tx).toDouble()
+        val dy = (by - ty).toDouble()
+        return sqrt(dx * dx + dy * dy) < dp(80)
+    }
+
+    private fun updateTrash() {
+        val hot = isOverTrash()
+        if (hot == trashHot) return
+        trashHot = hot
+        val t = trash ?: return
+        t.circleColor = if (hot) 0xFFFF2D55.toInt() else TRASH_COLOR
+        val scale = if (hot) 1.3f else 1f
+        t.scaleX = scale
+        t.scaleY = scale
+    }
+
+    private fun removeBubble() {
+        Prefs.setBubble(this, false)
+        Toast.makeText(applicationContext, R.string.toast_bubble_removed, Toast.LENGTH_LONG).show()
+        stopSelf()
     }
 
     // ------------------------------------------------------------------- ações
@@ -392,20 +567,24 @@ class BubbleService : Service() {
         bubbleBtn.circleColor = when {
             lastRec && lastPaused -> 0xE6777777.toInt()
             lastRec -> 0xE6FF5470.toInt()
-            else -> 0xE68781FF.toInt()
+            else -> baseColor()
         }
         touchBtn.active = Prefs.showTouches(this)
 
         val hideAll = lastBusy && Prefs.bubbleMode(this) == Prefs.BUBBLE_GONE
         r.visibility = if (hideAll) View.GONE else View.VISIBLE
         toolbar?.visibility = if (hideAll) View.GONE else View.VISIBLE
+        if (hideAll) {
+            hideTrash()
+            if (expanded) setExpanded(false)
+        }
 
         val secure = wantSecure()
         setSecure(r, params, secure)
         val tb = toolbar
         val tbp = toolbarParams
         if (tb != null && tbp != null) setSecure(tb, tbp, secure)
-        r.post { clampToScreen() }
+        clampSoon()
     }
 
     private fun setSecure(v: View, p: WindowManager.LayoutParams, secure: Boolean) {
@@ -472,8 +651,8 @@ class BubbleService : Service() {
         }
         val undo = IconButton(this, IconButton.UNDO)
         undo.setOnClickListener { canvas?.undo() }
-        val trash = IconButton(this, IconButton.TRASH)
-        trash.setOnClickListener { canvas?.clear() }
+        val trashBtn = IconButton(this, IconButton.TRASH)
+        trashBtn.setOnClickListener { canvas?.clear() }
         val fade = IconButton(this, IconButton.FADE)
         fade.active = Prefs.penFade(this)
         fade.setOnClickListener {
@@ -487,11 +666,12 @@ class BubbleService : Service() {
         val close = IconButton(this, IconButton.CLOSE)
         close.setOnClickListener { setPen(false) }
 
-        for (b in listOf(color, undo, trash, fade, mode, close)) {
-            bar.addView(b, LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(4); marginEnd = dp(4) })
+        for (b in listOf(color, undo, trashBtn, fade, mode, close)) {
+            bar.addView(b, LinearLayout.LayoutParams(dp(42), dp(42)).apply {
+                marginStart = dp(4)
+                marginEnd = dp(4)
+            })
         }
-        colorBtn = color
-        fadeBtn = fade
         modeBtn = mode
 
         val bp = WindowManager.LayoutParams(

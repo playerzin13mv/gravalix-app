@@ -29,7 +29,8 @@ object Prefs {
     fun bubble(c: Context) = sp(c).getBoolean("bubble", true)
     fun setBubble(c: Context, v: Boolean) = sp(c).edit().putBoolean("bubble", v).apply()
 
-    fun bubbleMode(c: Context) = sp(c).getInt("bubble_mode", BUBBLE_HIDDEN_FROM_VIDEO)
+    /** Padrão: a bolha some durante a gravação (é o único jeito que nunca aparece no vídeo). */
+    fun bubbleMode(c: Context) = sp(c).getInt("bubble_mode", BUBBLE_GONE)
     fun setBubbleMode(c: Context, v: Int) = sp(c).edit().putInt("bubble_mode", v).apply()
 
     /** Mostrar os toques no vídeo. */
@@ -47,9 +48,28 @@ object Prefs {
     fun shakeStop(c: Context) = sp(c).getBoolean("shake_stop", false)
     fun setShakeStop(c: Context, v: Boolean) = sp(c).edit().putBoolean("shake_stop", v).apply()
 
-    /** Posição da bolha (para lembrar onde você deixou). */
-    fun bubbleX(c: Context) = sp(c).getInt("bubble_x", -1)
+    /** Lado da tela onde a bolha fica encaixada (true = direita) e a altura dela. */
+    fun bubbleRight(c: Context) = sp(c).getBoolean("bubble_right", true)
+    fun setBubbleSide(c: Context, right: Boolean) = sp(c).edit().putBoolean("bubble_right", right).apply()
     fun bubbleY(c: Context) = sp(c).getInt("bubble_y", -1)
-    fun setBubblePos(c: Context, x: Int, y: Int) =
-        sp(c).edit().putInt("bubble_x", x).putInt("bubble_y", y).apply()
+    fun setBubbleY(c: Context, y: Int) = sp(c).edit().putInt("bubble_y", y).apply()
+
+    /** Personalização da bolha: tamanho (0 pequena, 1 média, 2 grande), opacidade e cor. */
+    fun bubbleSize(c: Context) = sp(c).getInt("bubble_size", 1)
+    fun setBubbleSize(c: Context, v: Int) = sp(c).edit().putInt("bubble_size", v).apply()
+
+    /** 0 = 100%, 1 = 80%, 2 = 60%, 3 = 40% */
+    fun bubbleAlpha(c: Context) = sp(c).getInt("bubble_alpha", 0)
+    fun setBubbleAlpha(c: Context, v: Int) = sp(c).edit().putInt("bubble_alpha", v).apply()
+
+    fun bubbleColor(c: Context) = sp(c).getInt("bubble_color", 0)
+    fun setBubbleColor(c: Context, v: Int) = sp(c).edit().putInt("bubble_color", v).apply()
+
+    /** Quais botões aparecem no menu da bolha. */
+    fun menuPen(c: Context) = sp(c).getBoolean("menu_pen", true)
+    fun setMenuPen(c: Context, v: Boolean) = sp(c).edit().putBoolean("menu_pen", v).apply()
+    fun menuTouches(c: Context) = sp(c).getBoolean("menu_touches", true)
+    fun setMenuTouches(c: Context, v: Boolean) = sp(c).edit().putBoolean("menu_touches", v).apply()
+    fun menuHome(c: Context) = sp(c).getBoolean("menu_home", true)
+    fun setMenuHome(c: Context, v: Boolean) = sp(c).edit().putBoolean("menu_home", v).apply()
 }

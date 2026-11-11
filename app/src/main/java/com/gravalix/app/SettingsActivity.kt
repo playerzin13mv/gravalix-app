@@ -76,18 +76,70 @@ class SettingsActivity : Activity() {
             ) { Prefs.setCountdown(this, it) }
         }
 
-        // Bolha
+        // Bolha durante a gravação
         card(getString(R.string.section_bubble)).also { c ->
             c.addView(hint(getString(R.string.bubble_mode_title)))
             radios(
                 c,
                 listOf(
-                    Prefs.BUBBLE_HIDDEN_FROM_VIDEO to getString(R.string.bubble_hidden),
-                    Prefs.BUBBLE_GONE to getString(R.string.bubble_gone)
+                    Prefs.BUBBLE_GONE to getString(R.string.bubble_gone),
+                    Prefs.BUBBLE_HIDDEN_FROM_VIDEO to getString(R.string.bubble_hidden)
                 ),
                 Prefs.bubbleMode(this)
             ) { Prefs.setBubbleMode(this, it) }
             c.addView(hint(getString(R.string.bubble_mode_hint)))
+        }
+
+        // Personalizar a bolha
+        card(getString(R.string.section_bubble_style)).also { c ->
+            c.addView(hint(getString(R.string.style_size)))
+            radios(
+                c,
+                listOf(
+                    0 to getString(R.string.size_small),
+                    1 to getString(R.string.size_medium),
+                    2 to getString(R.string.size_large)
+                ),
+                Prefs.bubbleSize(this)
+            ) { Prefs.setBubbleSize(this, it); BubbleService.reload(this) }
+
+            c.addView(hint(getString(R.string.style_opacity)))
+            radios(
+                c,
+                listOf(
+                    0 to "100%",
+                    1 to "80%",
+                    2 to "60%",
+                    3 to "40%"
+                ),
+                Prefs.bubbleAlpha(this)
+            ) { Prefs.setBubbleAlpha(this, it); BubbleService.reload(this) }
+
+            c.addView(hint(getString(R.string.style_color)))
+            radios(
+                c,
+                listOf(
+                    0 to getString(R.string.color_purple),
+                    1 to getString(R.string.color_red),
+                    2 to getString(R.string.color_green),
+                    3 to getString(R.string.color_blue),
+                    4 to getString(R.string.color_orange),
+                    5 to getString(R.string.color_gray)
+                ),
+                Prefs.bubbleColor(this)
+            ) { Prefs.setBubbleColor(this, it); BubbleService.reload(this) }
+
+            c.addView(hint(getString(R.string.style_buttons)))
+            switchRow(c, getString(R.string.menu_pen), "", Prefs.menuPen(this)) {
+                Prefs.setMenuPen(this, it); BubbleService.reload(this)
+            }
+            switchRow(c, getString(R.string.menu_touches), "", Prefs.menuTouches(this)) {
+                Prefs.setMenuTouches(this, it); BubbleService.reload(this)
+            }
+            switchRow(c, getString(R.string.menu_home), "", Prefs.menuHome(this)) {
+                Prefs.setMenuHome(this, it); BubbleService.reload(this)
+            }
+            c.addView(hint(getString(R.string.style_side_hint)))
         }
 
         // Caneta
@@ -101,19 +153,17 @@ class SettingsActivity : Activity() {
             switchRow(c, getString(R.string.opt_touches), getString(R.string.opt_touches_hint),
                 Prefs.showTouches(this)) {
                 Prefs.setShowTouches(this, it)
-                if (it && !TouchIndicator.canToggle(this)) {
-                    Toast.makeText(this, R.string.touch_manual, Toast.LENGTH_LONG).show()
-                }
+                TouchIndicator.applyChoice(this, it)
             }
             touchStatus = hint("")
             c.addView(touchStatus)
             btnDev = Button(this).apply {
-                text = getString(R.string.btn_open_dev)
+                text = getString(R.string.btn_open_a11y)
                 isAllCaps = false
                 setTextColor(color(R.color.text))
                 setBackgroundResource(R.drawable.bg_button_secondary)
                 stateListAnimator = null
-                setOnClickListener { TouchIndicator.openDeveloperSettings(this@SettingsActivity) }
+                setOnClickListener { TouchIndicator.openAccessibilitySettings(this@SettingsActivity) }
             }
             c.addView(btnDev, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(44)).apply { topMargin = dp(6) })
@@ -131,9 +181,16 @@ class SettingsActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        val ok = TouchIndicator.canToggle(this)
-        touchStatus.text = getString(if (ok) R.string.touch_status_ok else R.string.touch_status_no)
-        btnDev.visibility = if (ok) View.GONE else View.VISIBLE
+        val system = TouchIndicator.canToggle(this)
+        val app = TouchAccessibilityService.connected
+        touchStatus.text = getString(
+            when {
+                system -> R.string.touch_status_system
+                app -> R.string.touch_status_app
+                else -> R.string.touch_status_none
+            }
+        )
+        btnDev.visibility = if (system || app) View.GONE else View.VISIBLE
     }
 
     // ------------------------------------------------------------------ helpers

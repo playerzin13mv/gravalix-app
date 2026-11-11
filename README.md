@@ -5,10 +5,12 @@ Gravador de tela para Android. **Sem marca d’água**, grava por cima de qualqu
 ## O que ele faz
 
 - **Tela inicial com a lista dos seus vídeos**: miniatura, assistir dentro do app, compartilhar, enviar para o **YouTube** e excluir
-- **Bolha flutuante** por cima dos apps, **antes e durante** a gravação. Você começa a gravar de qualquer lugar, sem abrir o Gravalix
-- A bolha **fica fora do vídeo** (veja as perguntas frequentes se aparecer um quadrado preto)
+- **Bolha flutuante** por cima dos apps **antes e depois** de gravar. Você começa a gravar de qualquer lugar, sem abrir o Gravalix
+- A bolha **some durante a gravação**, então nunca aparece no vídeo. Ela volta quando você para
+- A bolha **fica só nas laterais** da tela e tem uma **lixeira** para tirá-la sem abrir o app
+- **Bolha personalizável**: tamanho, opacidade, cor e quais botões aparecem no menu
 - **Caneta**: desenhe ou circule coisas na tela enquanto grava. O desenho aparece no vídeo
-- **Mostrar toques**: um círculo onde o dedo toca, visível no vídeo
+- **Mostrar toques** do próprio app: um círculo no que você toca, visível no vídeo
 - **Contagem configurável**: sem contagem, 3, 5 ou 10 segundos
 - **Áudio** à sua escolha: som do telefone, microfone, os dois ou mudo
 - **Qualidade**: HD 720p/30, Full HD 1080p/30 ou Full HD 1080p/60
@@ -41,7 +43,11 @@ Para atualizar, é só baixar o APK novo e instalar por cima. Seus vídeos não 
 - Na primeira gravação o Android pede **microfone**, **notificações** e **gravar a tela** (toque em **Iniciar agora**).
 
 ### A bolha
-Toque nela para abrir o menu. Dá para arrastá-la para onde quiser.
+- Ela fica **encaixada na lateral** da tela. Arraste para cima ou para baixo, ou para o outro lado. Ao soltar, ela gruda na lateral mais perto.
+- Toque nela para abrir o menu (ele abre para o lado de dentro da tela).
+- **Lixeira:** ao começar a arrastar a bolha, aparece uma lixeira embaixo. Solte a bolha em cima dela para tirá-la da tela, sem abrir o app. Para ela voltar, ligue **Bolha flutuante** no Gravalix.
+- **Durante a gravação a bolha some.** Pare pela notificação, pelo painel rápido ou agitando o celular. Quando a gravação termina, ela volta.
+- Em **Configurações → Personalizar a bolha** você muda o tamanho, a opacidade, a cor e quais botões aparecem.
 
 | Botão | O que faz |
 | --- | --- |
@@ -72,28 +78,32 @@ Use a bolha, a **notificação**, o botão do **painel rápido** ou **agite o ce
 ### Botão no painel rápido
 Puxe a barra de cima, toque no lápis de editar e arraste o **Gravalix** para os botões ativos. Daí é só tocar nele para gravar e parar.
 
-## Mostrar toques (uma configuração só)
+## Mostrar toques
 
-O Android não deixa um app comum ligar os “toques na tela” sozinho. Há dois caminhos:
+O Android não deixa um app comum ver onde o dedo toca dentro de outros apps. Por isso o Gravalix tem dois jeitos, e usa o que estiver disponível:
 
-**Jeito fácil (manual):** ligue **Mostrar toques** em Configurações → Opções do desenvolvedor. O Gravalix abre essa tela para você.
+**1) Toques do Gravalix (o padrão, sem comandos).**
+1. Em **Configurações → Mostrar toques**, toque em **Abrir Acessibilidade**.
+2. Procure **Gravalix – mostrar toques** (pode estar em “Apps instalados”) e ligue.
+3. Se o Android disser “configuração restrita”, vá em **Configurações → Apps → Gravalix**, toque nos três pontinhos e escolha **Permitir configurações restritas**. Depois ligue o serviço.
 
-**Jeito automático (uma vez só, pelo Termux):** assim o Gravalix liga e desliga os toques sozinho, pela bolha ou pelas Configurações.
+Quando você grava com **Mostrar toques** ligado, o Gravalix desenha um círculo no **centro do botão ou item que você tocou**. Não é o ponto exato do dedo, e não aparece em jogos ou telas desenhadas sem botões. O serviço só desenha o círculo: ele não lê, guarda nem envia nada do que está na tela.
 
+**2) Toques exatos do sistema (opcional, uma vez só pelo Termux).** Mostra o círculo no ponto exato do dedo, inclusive ao arrastar.
 1. Instale o Gravalix e conecte o celular ao Wi-Fi.
 2. Ligue **Opções do desenvolvedor → Depuração sem fio**.
-3. No Termux, na pasta do projeto:
-   ```bash
-   bash ativar-toques.sh
-   ```
+3. No Termux, na pasta do projeto: `bash ativar-toques.sh`
 4. O script pede o endereço e o código do pareamento. Use a **tela dividida** (Termux de um lado, Configurações do outro), porque a janela do código some se você sair dela.
 
-Isso só precisa ser feito uma vez. Se você desinstalar o Gravalix, precisa refazer.
+Com essa permissão liberada, o Gravalix passa a usar os toques do sistema no lugar do círculo no item. Se você desinstalar o Gravalix, precisa refazer.
 
 ## Perguntas frequentes
 
-**A bolha apareceu no vídeo, ou ficou um quadrado preto no lugar.**
-A bolha usa a proteção do Android para sair do vídeo, e isso se comporta diferente em cada fabricante. Em **Configurações → Bolha durante a gravação**, escolha **Some totalmente**. A bolha desaparece quando a gravação começa, e você controla pela notificação, pelo painel rápido ou agitando o celular.
+**A bolha apareceu no vídeo (ou ficou um quadrado preto).**
+Em **Configurações → Bolha durante a gravação**, deixe em **Some durante a gravação** (é o padrão). O outro modo é experimental: ele usa a proteção do Android e, em muitos celulares, deixa um quadrado preto no vídeo.
+
+**Como paro a gravação se a bolha some?**
+Pela notificação (botão **Parar**), pelo botão do painel rápido ou agitando o celular 3 vezes (ative em Configurações).
 
 **O som do telefone saiu mudo.**
 O Android bloqueia a captura do som interno em alguns apps (certos apps de streaming, ligações e apps que proíbem a captura). Use a opção **Microfone** ou **Som do telefone + microfone**.
@@ -105,7 +115,7 @@ Vá em **Configurações → Apps → Gravalix**, toque nos três pontinhos e es
 O tamanho do vídeo é decidido na hora de iniciar. Para jogos, ligue **Gravar na horizontal** em Configurações.
 
 **A bolha sumiu.**
-Abra o Gravalix e confira se a chave **Bolha flutuante** está ligada. Ela some se você tocar no X do menu.
+Abra o Gravalix e confira se a chave **Bolha flutuante** está ligada. Ela desliga se você tocar no X do menu ou soltar a bolha na lixeira.
 
 **O desenho da caneta não aparece no vídeo.**
 Ele aparece sim. Se você usou o modo **Some totalmente** e a bolha não está na tela, o desenho continua gravando normalmente.
@@ -145,7 +155,8 @@ Se a compilação falhar, abra a execução em **Actions**, copie o erro (linhas
 | `RecorderService.kt` | Serviço da gravação: contagem, notificação, pausar, parar |
 | `ScreenRecorder.kt` | Motor: captura a tela e o áudio e grava o `.mp4` |
 | `RecordingTileService.kt` | Botão do painel rápido |
-| `TouchIndicator.kt` | Liga e desliga “mostrar toques” |
+| `TouchIndicator.kt` | Escolhe como mostrar os toques |
+| `TouchAccessibilityService.kt` | Desenha o círculo no item tocado |
 | `ShakeDetector.kt` | Agitar para parar |
 | `Prefs.kt`, `IconButton.kt`, `PlayerActivity.kt` | Configurações salvas, ícones dos botões e player |
 | `.github/workflows/build.yml` | Compilação automática no GitHub |
