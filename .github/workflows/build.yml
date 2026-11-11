@@ -22,10 +22,7 @@ jobs:
           java-version: "17"
 
       - name: Preparar o Android SDK
-        run: |
-          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKM" --licenses > /dev/null || true
-          "$SDKM" "platforms;android-34" "build-tools;34.0.0"
+        uses: android-actions/setup-android@v3
 
       - name: Preparar o Gradle
         uses: gradle/actions/setup-gradle@v4
