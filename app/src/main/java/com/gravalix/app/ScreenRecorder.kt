@@ -56,6 +56,7 @@ class ScreenRecorder(
     private val config: RecordConfig,
     private val audioMode: Int,
     val output: Uri,
+    private val live: LiveSink? = null,
     private val onMessage: (String) -> Unit
 ) {
 
@@ -111,6 +112,14 @@ class ScreenRecorder(
     private var lastAudioPts = -1L
 
     private fun nowUs(): Long = System.nanoTime() / 1000
+
+    private fun bytesOf(b: ByteBuffer): ByteArray {
+        val d = b.duplicate()
+        d.rewind()
+        val out = ByteArray(d.remaining())
+        d.get(out)
+        return out
+    }
 
     // ------------------------------------------------------------------ início
 
@@ -355,6 +364,14 @@ class ScreenRecorder(
                 if (idx == MediaCodec.INFO_TRY_AGAIN_LATER) continue
                 if (idx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     addTrack(enc.outputFormat, true)
+                    try {
+                        val f = enc.outputFormat
+                        val sps = f.getByteBuffer("csd-0")
+                        val pps = f.getByteBuffer("csd-1")
+                        if (sps != null && pps != null) live?.onVideoConfig(bytesOf(sps), bytesOf(pps))
+                    } catch (e: Exception) {
+                        AppLog.e("live: config de vídeo", e)
+                    }
                     continue
                 }
                 if (idx < 0) continue
@@ -386,6 +403,16 @@ class ScreenRecorder(
                     info.presentationTimeUs = pts
                     buf!!.position(info.offset)
                     buf.limit(info.offset + info.size)
+                    if (live != null) {
+                        try {
+                            val copy = ByteArray(info.size)
+                            buf.get(copy)
+                            buf.position(info.offset)
+                            live.onVideo(copy, pts, (info.flags and MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0)
+                        } catch (e: Exception) {
+                            AppLog.e("live: vídeo", e)
+                        }
+                    }
                     writeSample(videoTrack, buf, info)
                 }
                 enc.releaseOutputBuffer(idx, false)
@@ -430,6 +457,7 @@ class ScreenRecorder(
                     mixed[2 * i] = clamp16(l)
                     mixed[2 * i + 1] = clamp16(r)
                 }
+                if (mic != null) AudioLevel.feed(micBuf, AUDIO_FRAMES)
 
                 if (baseUs < 0) baseUs = nowUs()
                 if (paused) continue
@@ -498,6 +526,11 @@ class ScreenRecorder(
             }
             if (idx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 addTrack(enc.outputFormat, false)
+                try {
+                    enc.outputFormat.getByteBuffer("csd-0")?.let { live?.onAudioConfig(bytesOf(it)) }
+                } catch (e: Exception) {
+                    AppLog.e("live: config de áudio", e)
+                }
                 continue
             }
             if (idx < 0) continue
@@ -514,6 +547,16 @@ class ScreenRecorder(
                 info.presentationTimeUs = pts
                 buf.position(info.offset)
                 buf.limit(info.offset + info.size)
+                if (live != null) {
+                    try {
+                        val copy = ByteArray(info.size)
+                        buf.get(copy)
+                        buf.position(info.offset)
+                        live.onAudio(copy, pts)
+                    } catch (e: Exception) {
+                        AppLog.e("live: áudio", e)
+                    }
+                }
                 writeSample(audioTrack, buf, info)
             }
             enc.releaseOutputBuffer(idx, false)

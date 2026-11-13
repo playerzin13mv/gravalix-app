@@ -27,6 +27,8 @@ class StartActivity : Activity() {
 
     private var askedOverlay = false
 
+    private fun isLive() = intent.getBooleanExtra(RecorderService.EXTRA_LIVE, false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (RecorderService.isActive) {
@@ -38,7 +40,7 @@ class StartActivity : Activity() {
 
     private fun next() {
         // 1) Aparecer sobre outros apps (bolha e contagem)
-        val needOverlay = Prefs.bubble(this) || Prefs.countdown(this) > 0
+        val needOverlay = Prefs.bubble(this) || Prefs.countdown(this) > 0 || isLive()
         if (needOverlay && !Settings.canDrawOverlays(this) && !askedOverlay) {
             askedOverlay = true
             Toast.makeText(this, R.string.need_overlay, Toast.LENGTH_LONG).show()
@@ -54,7 +56,7 @@ class StartActivity : Activity() {
 
         // 2) Microfone/áudio e notificações
         val needed = ArrayList<String>()
-        if (Prefs.audio(this) != RecorderService.AUDIO_NONE &&
+        if ((Prefs.audio(this) != RecorderService.AUDIO_NONE || isLive()) &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         ) {
             needed.add(Manifest.permission.RECORD_AUDIO)
@@ -81,7 +83,7 @@ class StartActivity : Activity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode != REQ_PERMS) return
-        if (Prefs.audio(this) != RecorderService.AUDIO_NONE &&
+        if ((Prefs.audio(this) != RecorderService.AUDIO_NONE || isLive()) &&
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         ) {
             Toast.makeText(this, R.string.need_mic, Toast.LENGTH_LONG).show()
@@ -103,6 +105,7 @@ class StartActivity : Activity() {
                 }
                 val intent = Intent(this, RecorderService::class.java).apply {
                     action = RecorderService.ACTION_START
+                    putExtra(RecorderService.EXTRA_LIVE, isLive())
                     putExtra(RecorderService.EXTRA_RESULT_CODE, resultCode)
                     putExtra(RecorderService.EXTRA_RESULT_DATA, data)
                 }

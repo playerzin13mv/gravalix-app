@@ -45,7 +45,7 @@ data class Recording(
  * Tela inicial: a lista dos vídeos gravados (assistir, compartilhar, YouTube, excluir),
  * o botão de gravar e a chave da bolha flutuante. As configurações ficam em [SettingsActivity].
  */
-class MainActivity : Activity() {
+class MainActivity : BaseActivity() {
 
     private companion object {
         const val REQ_DELETE = 20
@@ -73,6 +73,15 @@ class MainActivity : Activity() {
         switchBubble = findViewById(R.id.switchBubble)
         listView.adapter = adapter
         listView.emptyView = emptyView
+
+        findViewById<Button>(R.id.btnLive).setOnClickListener {
+            startActivity(Intent(this, LiveActivity::class.java))
+        }
+        if (Prefs.animations(this)) {
+            listView.layoutAnimation = android.view.animation.LayoutAnimationController(
+                android.view.animation.AnimationUtils.loadAnimation(this, R.anim.rise_in), 0.12f
+            )
+        }
 
         findViewById<Button>(R.id.btnSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))

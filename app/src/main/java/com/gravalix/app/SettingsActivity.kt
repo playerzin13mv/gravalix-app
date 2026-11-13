@@ -17,7 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 
 /** Todas as configurações do Gravalix, separadas da lista de vídeos. */
-class SettingsActivity : Activity() {
+class SettingsActivity : BaseActivity() {
 
     private companion object {
         const val REQ_PHOTO = 31
@@ -40,6 +40,37 @@ class SettingsActivity : Activity() {
         setContentView(scroll)
 
         content.addView(text(getString(R.string.settings_title), 24f, R.color.text, true))
+
+        // Aparência
+        card(getString(R.string.section_appearance)).also { c ->
+            c.addView(hint(getString(R.string.theme_title)))
+            radios(
+                c,
+                listOf(
+                    AppTheme.SYSTEM to getString(R.string.theme_system),
+                    AppTheme.LIGHT to getString(R.string.theme_light),
+                    AppTheme.DARK to getString(R.string.theme_dark)
+                ),
+                Prefs.theme(this)
+            ) {
+                Prefs.setTheme(this, it)
+                recreate()
+            }
+            switchRow(c, getString(R.string.opt_animations), "", Prefs.animations(this)) {
+                Prefs.setAnimations(this, it)
+            }
+        }
+
+        // Live
+        card(getString(R.string.btn_live)).also { c ->
+            c.addView(hint(getString(R.string.settings_live_hint)))
+            c.addView(smallButton(getString(R.string.live_title)) {
+                startActivity(Intent(this, LiveActivity::class.java))
+            })
+            c.addView(smallButton(getString(R.string.editor_title)) {
+                startActivity(Intent(this, LiveEditorActivity::class.java))
+            })
+        }
 
         // Áudio
         card(getString(R.string.section_audio)).also { c ->
@@ -212,6 +243,38 @@ class SettingsActivity : Activity() {
                 Prefs.shakeStop(this)) { Prefs.setShakeStop(this, it) }
             c.addView(hint(getString(R.string.tile_tip)))
         }
+
+        // Se algo parar sozinho
+        card(getString(R.string.section_problems)).also { c ->
+            c.addView(hint(getString(R.string.problems_hint)))
+            c.addView(smallButton(getString(R.string.btn_battery)) {
+                try {
+                    startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                } catch (_: Exception) {
+                    startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+                }
+            })
+            c.addView(smallButton(getString(R.string.btn_share_log)) {
+                val log = AppLog.read().ifEmpty { getString(R.string.log_empty) }
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT, "Gravalix – relatório")
+                    .putExtra(Intent.EXTRA_TEXT, log)
+                startActivity(Intent.createChooser(send, getString(R.string.btn_share_log)))
+            })
+            c.addView(smallButton(getString(R.string.btn_clear_log)) {
+                AppLog.clear()
+                Toast.makeText(this, R.string.toast_log_cleared, Toast.LENGTH_SHORT).show()
+            })
+        }
+
+        // Entrada suave dos cartões
+        if (Prefs.animations(this)) {
+            for (i in 0 until content.childCount) {
+                val anim = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.rise_in)
+                anim.startOffset = (i * 55L).coerceAtMost(500L)
+                content.getChildAt(i).startAnimation(anim)
+            }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
@@ -245,7 +308,7 @@ class SettingsActivity : Activity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
 
-    private fun color(id: Int): Int = getColor(id)
+    private fun color(id: Int): Int = AppTheme.color(this, id)
 
     private fun text(s: String, size: Float, colorRes: Int, bold: Boolean = false): TextView =
         TextView(this).apply {

@@ -144,12 +144,21 @@ class BubbleService : Service() {
                 return START_STICKY
             }
         }
+        // O Android exige startForeground logo após startForegroundService; sem isso o app cai.
+        try {
+            startAsForeground()
+        } catch (e: Exception) {
+            AppLog.e("bolha: startForeground falhou", e)
+        }
         if (!Settings.canDrawOverlays(this) || (intent == null && !Prefs.bubble(this))) {
             stopSelf()
             return START_NOT_STICKY
         }
-        startAsForeground()
-        if (root == null) buildBubble()
+        try {
+            if (root == null) buildBubble()
+        } catch (e: Exception) {
+            AppLog.e("bolha: erro ao criar", e)
+        }
         isRunning = true
         handler.removeCallbacks(poll)
         handler.post(poll)

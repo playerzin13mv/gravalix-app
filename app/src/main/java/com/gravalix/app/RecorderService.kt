@@ -42,6 +42,7 @@ class RecorderService : Service() {
         const val ACTION_STOP = "com.gravalix.app.STOP"
         const val ACTION_PAUSE_RESUME = "com.gravalix.app.PAUSE_RESUME"
 
+        const val EXTRA_LIVE = "live"
         const val EXTRA_RESULT_CODE = "result_code"
         const val EXTRA_RESULT_DATA = "result_data"
 
@@ -83,6 +84,8 @@ class RecorderService : Service() {
 
     private var stopping = false
     private var audioMode = AUDIO_NONE
+    private var liveMode = false
+    private var liveSink: RtmpSink? = null
     private var quality = QUALITY_FHD
     private var landscape = false
 
@@ -98,7 +101,38 @@ class RecorderService : Service() {
         return START_NOT_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        AppLog.i("app removido dos recentes (gravação continua: $isActive)")
+        super.onTaskRemoved(rootIntent)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        AppLog.i("pouca memória no sistema (nível $level)")
+        super.onTrimMemory(level)
+    }
+
+    private var wake: android.os.PowerManager.WakeLock? = null
+
+    private fun acquireWake() {
+        try {
+            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+            wake = pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "Gravalix:rec").also {
+                it.setReferenceCounted(false)
+                it.acquire(4 * 60 * 60 * 1000L)
+            }
+        } catch (e: Exception) {
+            AppLog.e("wake lock", e)
+        }
+    }
+
+    private fun releaseWake() {
+        try { wake?.takeIf { it.isHeld }?.release() } catch (_: Exception) {}
+        wake = null
+    }
+
     override fun onDestroy() {
+        AppLog.i("RecorderService.onDestroy (gravando=$isRecording)")
+        releaseWake()
         handler.removeCallbacksAndMessages(null)
         removeCountdownView()
         cleanupExtras()
@@ -134,6 +168,9 @@ class RecorderService : Service() {
         val code = intent.getIntExtra(EXTRA_RESULT_CODE, Activity.RESULT_CANCELED)
         val data = readProjectionData(intent)
         audioMode = Prefs.audio(this)
+        liveMode = intent.getBooleanExtra(EXTRA_LIVE, false)
+        // Na live o microfone é necessário (voz e PNGTuber)
+        if (liveMode && audioMode != AUDIO_MIC && audioMode != AUDIO_BOTH) audioMode = AUDIO_BOTH
         quality = Prefs.quality(this)
         landscape = Prefs.landscape(this)
         stopping = false
@@ -170,6 +207,7 @@ class RecorderService : Service() {
             val cb = object : MediaProjection.Callback() {
                 override fun onStop() {
                     // O usuário encerrou o compartilhamento pelo sistema
+                    AppLog.i("sistema encerrou a projeção de tela (MediaProjection.onStop)")
                     handler.post { if (!stopping) stopRecording() }
                 }
             }
@@ -308,15 +346,24 @@ class RecorderService : Service() {
             } catch (e: Exception) {
                 break
             }
-            val candidate = ScreenRecorder(this, proj, cfg, audioMode, uri) { msg ->
+            var sink: RtmpSink? = null
+            if (liveMode) {
+                sink = RtmpSink(Prefs.liveUrl(this), Prefs.liveKey(this), cfg.width, cfg.height, cfg.fps) { st, msg ->
+                    handler.post { onLiveState(st, msg) }
+                }
+            }
+            val candidate = ScreenRecorder(this, proj, cfg, audioMode, uri, sink) { msg ->
                 handler.post { toast(msg) }
             }
             try {
                 candidate.start()
                 started = candidate
+                liveSink = sink
+                sink?.start()
                 break
             } catch (e: Exception) {
-                // tenta de novo com configuração menor (a próxima da lista)
+                sink?.close()
+                AppLog.e("falha ao iniciar com ${cfg.width}x${cfg.height}", e)
             }
         }
 
@@ -329,6 +376,9 @@ class RecorderService : Service() {
         recorder = started
         isPaused = false
         isRecording = true
+        acquireWake()
+        AppLog.i("gravação iniciada (live=$liveMode)")
+        if (liveMode || Prefs.sceneOnRecord(this)) LiveOverlay.show(this)
         notificationManager().notify(NOTIF_ID, buildNotification(false))
 
         // "Mostrar toques": liga no sistema enquanto grava (precisa da permissão especial)
@@ -343,7 +393,18 @@ class RecorderService : Service() {
         }
     }
 
+    private fun onLiveState(st: RtmpSink.State, msg: String) {
+        when (st) {
+            RtmpSink.State.CONNECTING -> toast(getString(R.string.live_connecting))
+            RtmpSink.State.LIVE -> toast(getString(R.string.live_on_air))
+            RtmpSink.State.ERROR -> toast(getString(R.string.live_error, msg))
+        }
+    }
+
     private fun cleanupExtras() {
+        LiveOverlay.hide()
+        liveSink?.close()
+        liveSink = null
         shake?.stop()
         shake = null
         touchesBefore?.let { TouchIndicator.set(this, it) }
@@ -362,6 +423,8 @@ class RecorderService : Service() {
     private fun stopRecording() {
         if (stopping) return
         stopping = true
+        AppLog.i("parando a gravação")
+        releaseWake()
 
         pendingStart?.let { handler.removeCallbacks(it) }
         pendingStart = null

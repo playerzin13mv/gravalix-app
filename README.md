@@ -16,6 +16,9 @@ Gravador de tela para Android. **Sem marca d’água**, grava por cima de qualqu
 - **Áudio** à sua escolha: som do telefone, microfone, os dois ou mudo
 - **Qualidade**: HD 720p/30, Full HD 1080p/30 ou Full HD 1080p/60
 - **Pausar e continuar**, modo **horizontal** para jogos
+- **Live (transmissão ao vivo)** para Twitch, YouTube, Facebook ou qualquer servidor RTMP, com **cena editável**: **PNGTuber** que abre a boca quando você fala, imagens e textos por cima da tela
+- **Tema** Claro, Escuro ou Sistema, e **animações de transição** (dá para desligar)
+- **Relatório de erros** e atalho para liberar o app da economia de bateria, se algo parar sozinho
 - **Extras**: botão no **painel rápido** (barra de cima) e **agitar o celular para parar**, os dois sem nada aparecendo na tela
 - Os vídeos ficam em **Filmes/Gravalix** (aparecem também na Galeria)
 
@@ -23,7 +26,7 @@ Gravador de tela para Android. **Sem marca d’água**, grava por cima de qualqu
 
 Precisa de Android 10 ou mais novo.
 
-1. No celular, abra: **https://github.com/playerzin13mv/gravalix-app/releases/latest**
+1. No celular, abra: **https://github.com/playerzin13mv/gravalix/releases/latest**
 2. Toque em **Gravalix.apk** para baixar.
 3. Abra o arquivo baixado (pelo aviso do navegador, pelo app **Arquivos** ou pelo **ZArchiver**) e toque em **Instalar**.
 4. Se o Android avisar que o app não pode instalar de fontes desconhecidas, toque em **Configurações** e ative **Permitir desta fonte**. Depois volte e toque em Instalar.
@@ -80,6 +83,20 @@ Use a bolha, a **notificação**, o botão do **painel rápido** ou **agite o ce
 ### Botão no painel rápido
 Puxe a barra de cima, toque no lápis de editar e arraste o **Gravalix** para os botões ativos. Daí é só tocar nele para gravar e parar.
 
+## Live e PNGTuber
+
+1. Na tela inicial toque em **Live**.
+2. Escolha a plataforma (Twitch, YouTube, Facebook ou Outro), confira o endereço do servidor e **cole a chave da transmissão** (fica no painel do criador da plataforma).
+3. Toque em **Editar a cena**:
+   - **+ PNGTuber**: escolha uma imagem de boca fechada. Depois, em **Imagem falando**, escolha a de boca aberta. Ele abre a boca quando o microfone te ouve.
+   - **+ Imagem** e **+ Texto** para logos, molduras, avisos etc.
+   - Arraste os itens na prévia (que tem o formato da sua tela) e use **dois dedos** para mudar o tamanho. Dá para espelhar, trazer para a frente e apagar.
+   - **Testar a fala** mostra a boca aberta na prévia.
+4. Volte e toque em **Iniciar a Live**. Os itens da cena aparecem por cima de tudo, na transmissão e no vídeo salvo.
+5. Para encerrar, use **Parar** na notificação, o painel rápido ou agite o celular.
+
+Notas: a live usa o microfone (a voz e o PNGTuber precisam dele). Tudo que aparece na tela vai para a live, inclusive notificações; ligue o **Não perturbe**. Uma cópia da live fica salva em Minhas gravações. Se a internet cair, a gravação no celular continua. O recurso de Live é novo: teste com uma transmissão privada/não listada antes de usar de verdade. Para a cena aparecer também em gravações normais, ligue a opção no editor.
+
 ## Mostrar toques
 
 O Android não deixa um app comum ver onde o dedo toca dentro de outros apps. Por isso o Gravalix tem dois jeitos, e usa o que estiver disponível:
@@ -115,6 +132,9 @@ Vá em **Configurações → Apps → Gravalix**, toque nos três pontinhos e es
 
 **Gravei na vertical e abri um jogo na horizontal.**
 O tamanho do vídeo é decidido na hora de iniciar. Para jogos, ligue **Gravar na horizontal** em Configurações.
+
+**A bolha some e a gravação para do nada.**
+Alguns celulares encerram apps em segundo plano. Em **Configurações → Se algo parar sozinho**, toque em **Liberar da economia de bateria** e deixe o Gravalix sem restrição. Não use apps de “limpar memória” (CCleaner e parecidos) durante a gravação. Se continuar, toque em **Enviar relatório de erros** e mande o texto.
 
 **A bolha sumiu.**
 Abra o Gravalix e confira se a chave **Bolha flutuante** está ligada. Ela desliga se você tocar no X do menu ou soltar a bolha na lixeira.
@@ -160,6 +180,10 @@ Se a compilação falhar, abra a execução em **Actions**, copie o erro (linhas
 | `TouchIndicator.kt` | Escolhe como mostrar os toques |
 | `TouchAccessibilityService.kt` | Desenha o círculo no item tocado |
 | `ShakeDetector.kt` | Agitar para parar |
+| `LiveActivity.kt`, `LiveEditorActivity.kt` | Tela da Live e editor da cena |
+| `LiveScene.kt`, `SceneView.kt`, `LiveOverlay.kt`, `AudioMeter.kt`, `AudioLevel.kt` | Cena (PNGTuber, imagens, textos), camada por cima da tela e volume do microfone |
+| `RtmpClient.kt`, `RtmpSink.kt`, `LiveSink.kt` | Envio ao vivo por RTMP |
+| `AppTheme.kt`, `BaseActivity.kt`, `AppLog.kt`, `GravalixApp.kt`, `Ui.kt` | Tema, animações, relatório de erros e peças de tela |
 | `Prefs.kt`, `IconButton.kt`, `PlayerActivity.kt` | Configurações salvas, ícones dos botões e player |
 | `.github/workflows/build.yml` | Compilação automática no GitHub |
 | `enviar-para-github.sh`, `ativar-toques.sh` | Scripts do Termux |
@@ -171,4 +195,4 @@ A chave de assinatura (`app/gravalix.jks`) está no projeto de propósito, para 
 
 ## Privacidade
 
-O Gravalix não usa internet e não envia nada para lugar nenhum. Os vídeos ficam só no seu telefone, até você compartilhar.
+O Gravalix só usa a internet quando você inicia uma **Live**, e envia o vídeo apenas para o servidor que você informou. Fora isso, não envia nada para lugar nenhum. Os vídeos, a cena e o relatório de erros ficam só no seu telefone, até você compartilhar.

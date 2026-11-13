@@ -73,4 +73,28 @@ object Prefs {
     fun setMenuTouches(c: Context, v: Boolean) = sp(c).edit().putBoolean("menu_touches", v).apply()
     fun menuHome(c: Context) = sp(c).getBoolean("menu_home", true)
     fun setMenuHome(c: Context, v: Boolean) = sp(c).edit().putBoolean("menu_home", v).apply()
+
+    /** Tema: 0 = sistema, 1 = claro, 2 = escuro. */
+    fun theme(c: Context) = sp(c).getInt("theme", 0)
+    fun setTheme(c: Context, v: Int) = sp(c).edit().putInt("theme", v).apply()
+
+    /** Animações de transição ligadas. */
+    fun animations(c: Context) = sp(c).getBoolean("animations", true)
+    fun setAnimations(c: Context, v: Boolean) = sp(c).edit().putBoolean("animations", v).apply()
+
+    /** Live (transmissão ao vivo). */
+    fun liveUrl(c: Context) = sp(c).getString("live_url", "rtmp://live.twitch.tv/app") ?: ""
+    fun setLiveUrl(c: Context, v: String) = sp(c).edit().putString("live_url", v).apply()
+    fun liveKey(c: Context) = sp(c).getString("live_key", "") ?: ""
+    fun setLiveKey(c: Context, v: String) = sp(c).edit().putString("live_key", v).apply()
+    fun livePlatform(c: Context) = sp(c).getInt("live_platform", 0)
+    fun setLivePlatform(c: Context, v: Int) = sp(c).edit().putInt("live_platform", v).apply()
+
+    /** Mostrar a cena (PNGTuber, imagens, textos) também nas gravações normais. */
+    fun sceneOnRecord(c: Context) = sp(c).getBoolean("scene_on_record", false)
+    fun setSceneOnRecord(c: Context, v: Boolean) = sp(c).edit().putBoolean("scene_on_record", v).apply()
+
+    /** Cena salva em JSON. */
+    fun scene(c: Context) = sp(c).getString("scene", "") ?: ""
+    fun setScene(c: Context, v: String) = sp(c).edit().putString("scene", v).apply()
 }

@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textColor="@color/text"
+                android:textColor="?attr/gxText"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -41,7 +41,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="@color/subtext"
+                android:textColor="?attr/gxSub"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
@@ -60,7 +60,7 @@
             android:layout_weight="1"
             android:text="@string/act_play"
             android:textAllCaps="false"
-            android:textColor="@color/accent"
+            android:textColor="?attr/gxAccent"
             android:textSize="12sp" />
 
         <Button
@@ -71,7 +71,7 @@
             android:layout_weight="1"
             android:text="@string/act_share"
             android:textAllCaps="false"
-            android:textColor="@color/accent"
+            android:textColor="?attr/gxAccent"
             android:textSize="12sp" />
 
         <Button
@@ -82,7 +82,7 @@
             android:layout_weight="1"
             android:text="@string/act_youtube"
             android:textAllCaps="false"
-            android:textColor="@color/accent"
+            android:textColor="?attr/gxAccent"
             android:textSize="12sp" />
 
         <Button
@@ -93,7 +93,7 @@
             android:layout_weight="1"
             android:text="@string/act_delete"
             android:textAllCaps="false"
-            android:textColor="@color/danger"
+            android:textColor="?attr/gxDanger"
             android:textSize="12sp" />
     </LinearLayout>
 </LinearLayout>

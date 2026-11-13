@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Gravalix" parent="android:Theme.Material.NoActionBar">
+        <item name="gxBg">@color/bg</item>
+        <item name="gxCard">@color/card</item>
+        <item name="gxText">@color/text</item>
+        <item name="gxSub">@color/subtext</item>
+        <item name="gxAccent">@color/accent</item>
+        <item name="gxDanger">@color/danger</item>
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>
@@ -8,6 +14,24 @@
         <item name="android:colorControlActivated">@color/accent</item>
         <item name="android:textColorPrimary">@color/text</item>
         <item name="android:textColorSecondary">@color/subtext</item>
+    </style>
+
+    <style name="Theme.Gravalix.Light" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="gxBg">@color/bg_light</item>
+        <item name="gxCard">@color/card_light</item>
+        <item name="gxText">@color/text_light</item>
+        <item name="gxSub">@color/subtext_light</item>
+        <item name="gxAccent">@color/accent_light</item>
+        <item name="gxDanger">@color/danger_light</item>
+        <item name="android:windowBackground">@color/bg_light</item>
+        <item name="android:statusBarColor">@color/bg_light</item>
+        <item name="android:navigationBarColor">@color/bg_light</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:colorAccent">@color/accent_light</item>
+        <item name="android:colorControlActivated">@color/accent_light</item>
+        <item name="android:textColorPrimary">@color/text_light</item>
+        <item name="android:textColorSecondary">@color/subtext_light</item>
     </style>
 
     <style name="Theme.Gravalix.Translucent" parent="android:Theme.Material.NoActionBar">

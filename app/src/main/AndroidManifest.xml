@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Opcional: só vale se for liberada pelo comando do README (ativar-toques.sh).
@@ -20,6 +21,7 @@
     </queries>
 
     <application
+        android:name=".GravalixApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -40,6 +42,14 @@
 
         <activity
             android:name=".SettingsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".LiveActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".LiveEditorActivity"
             android:exported="false" />
 
         <activity

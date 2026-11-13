@@ -8,7 +8,7 @@ import android.widget.Toast
 import android.widget.VideoView
 
 /** Player simples para assistir as gravações dentro do app. */
-class PlayerActivity : Activity() {
+class PlayerActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

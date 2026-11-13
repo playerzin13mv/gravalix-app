@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="gxBg" format="color" />
+    <attr name="gxCard" format="color" />
+    <attr name="gxText" format="color" />
+    <attr name="gxSub" format="color" />
+    <attr name="gxAccent" format="color" />
+    <attr name="gxDanger" format="color" />
+</resources>
