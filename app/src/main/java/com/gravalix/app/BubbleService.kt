@@ -265,6 +265,7 @@ class BubbleService : Service() {
         root = r
 
         bubbleBtn = IconButton(this, IconButton.CAMERA, baseColor())
+        bubbleBtn.photo = BubblePhoto.load(this)
         bubbleBtn.alpha = ALPHAS[Prefs.bubbleAlpha(this).coerceIn(0, ALPHAS.size - 1)]
         bubbleBtn.setOnTouchListener(DragTap())
 

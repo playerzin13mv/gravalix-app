@@ -2,6 +2,7 @@ package com.gravalix.app
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.util.TypedValue
@@ -18,6 +19,11 @@ import android.widget.Toast
 /** Todas as configurações do Gravalix, separadas da lista de vídeos. */
 class SettingsActivity : Activity() {
 
+    private companion object {
+        const val REQ_PHOTO = 31
+    }
+
+    private lateinit var photoPreview: IconButton
     private lateinit var content: LinearLayout
     private lateinit var touchStatus: TextView
     private lateinit var btnDev: Button
@@ -83,6 +89,7 @@ class SettingsActivity : Activity() {
                 c,
                 listOf(
                     Prefs.BUBBLE_GONE to getString(R.string.bubble_gone),
+                    Prefs.BUBBLE_VISIBLE to getString(R.string.bubble_visible),
                     Prefs.BUBBLE_HIDDEN_FROM_VIDEO to getString(R.string.bubble_hidden)
                 ),
                 Prefs.bubbleMode(this)
@@ -92,6 +99,34 @@ class SettingsActivity : Activity() {
 
         // Personalizar a bolha
         card(getString(R.string.section_bubble_style)).also { c ->
+            // Foto da bolha
+            c.addView(hint(getString(R.string.style_photo)))
+            photoPreview = IconButton(this, IconButton.CAMERA, 0xE68781FF.toInt())
+            photoPreview.photo = BubblePhoto.load(this)
+            val photoRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+            }
+            photoRow.addView(photoPreview, LinearLayout.LayoutParams(dp(64), dp(64)))
+            val photoButtons = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            photoButtons.addView(smallButton(getString(R.string.btn_choose_photo)) {
+                val pick = Intent(Intent.ACTION_GET_CONTENT).setType("image/*")
+                try {
+                    startActivityForResult(pick, REQ_PHOTO)
+                } catch (_: Exception) {
+                    Toast.makeText(this, R.string.toast_photo_error, Toast.LENGTH_LONG).show()
+                }
+            })
+            photoButtons.addView(smallButton(getString(R.string.btn_default_icon)) {
+                BubblePhoto.clear(this)
+                photoPreview.photo = null
+                BubbleService.reload(this)
+            })
+            photoRow.addView(photoButtons, LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
+            c.addView(photoRow)
+            c.addView(hint(getString(R.string.style_photo_hint)))
+
             c.addView(hint(getString(R.string.style_size)))
             radios(
                 c,
@@ -179,6 +214,19 @@ class SettingsActivity : Activity() {
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PHOTO || resultCode != RESULT_OK) return
+        val uri = data?.data
+        if (uri != null && BubblePhoto.saveFrom(this, uri)) {
+            photoPreview.photo = BubblePhoto.load(this)
+            BubbleService.reload(this)
+            Toast.makeText(this, R.string.toast_photo_ok, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, R.string.toast_photo_error, Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         val system = TouchIndicator.canToggle(this)
@@ -205,6 +253,21 @@ class SettingsActivity : Activity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
             setTextColor(color(colorRes))
             if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+
+    private fun smallButton(label: String, onClick: () -> Unit): Button =
+        Button(this).apply {
+            text = label
+            isAllCaps = false
+            setTextColor(color(R.color.text))
+            setBackgroundResource(R.drawable.bg_button_secondary)
+            stateListAnimator = null
+            minHeight = 0
+            minimumHeight = 0
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(40)
+            ).apply { bottomMargin = dp(6) }
+            setOnClickListener { onClick() }
         }
 
     private fun hint(s: String): TextView =

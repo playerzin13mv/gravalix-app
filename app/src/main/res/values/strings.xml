@@ -90,7 +90,6 @@
     <string name="opt_bubble_hint">Fica nas laterais da tela, antes e depois de gravar. Toque nela para gravar, usar a caneta e mostrar toques. Arraste até a lixeira para tirá-la da tela.</string>
     <string name="bubble_gone">Some durante a gravação (recomendado: nunca aparece no vídeo)</string>
     <string name="bubble_hidden">Tentar esconder do vídeo (experimental)</string>
-    <string name="bubble_mode_hint">Com “Some durante a gravação”, controle pela notificação, pelo painel rápido ou agitando o celular. O modo experimental usa a proteção do Android e, em muitos celulares, deixa um quadrado preto no vídeo.</string>
     <string name="toast_bubble_removed">Bolha removida. Para ela voltar, ligue “Bolha flutuante” no Gravalix.</string>
 
     <string name="section_bubble_style">Personalizar a bolha</string>
@@ -120,4 +119,13 @@
     <string name="touch_need_a11y">Ligue o serviço “Gravalix – mostrar toques” na lista de Acessibilidade.</string>
     <string name="a11y_label">Gravalix – mostrar toques</string>
     <string name="a11y_description">Desenha um círculo no botão ou item que você toca enquanto o Gravalix está gravando. Não lê, guarda nem envia nada do que aparece na tela.</string>
+
+    <string name="bubble_visible">Fica visível no vídeo (para mostrar a sua foto da bolha)</string>
+    <string name="bubble_mode_hint">“Some durante a gravação” é o único modo em que a bolha nunca aparece no vídeo. Com “Fica visível”, a bolha e o menu dela aparecem na gravação. O modo experimental usa a proteção do Android e, em muitos celulares, deixa um quadrado preto.</string>
+    <string name="style_photo">Ícone da bolha</string>
+    <string name="style_photo_hint">Escolha uma foto sua ou de um personagem para ser a bolha. Combina com “Fica visível no vídeo”, se você quiser que ela apareça na gravação.</string>
+    <string name="btn_choose_photo">Escolher foto</string>
+    <string name="btn_default_icon">Usar o ícone padrão</string>
+    <string name="toast_photo_ok">Foto da bolha atualizada.</string>
+    <string name="toast_photo_error">Não foi possível usar essa imagem. Tente outra.</string>
 </resources>

@@ -8,6 +8,7 @@ object Prefs {
 
     const val BUBBLE_HIDDEN_FROM_VIDEO = 0 // continua na tela para você, mas fora do vídeo
     const val BUBBLE_GONE = 1              // some totalmente durante a gravação
+    const val BUBBLE_VISIBLE = 2           // fica visível no vídeo (para mostrar a foto da bolha)
 
     private fun sp(c: Context): SharedPreferences =
         c.applicationContext.getSharedPreferences("gravalix", Context.MODE_PRIVATE)

@@ -53,6 +53,13 @@ class IconButton(context: Context, icon: Int, color: Int = 0xFF3A3658.toInt()) :
             invalidate()
         }
 
+    /** Foto no lugar do ícone da câmera (usada na bolha). */
+    var photo: android.graphics.Bitmap? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     /** Cor de destaque do ícone (ex.: cor da caneta). */
     var tint: Int = Color.WHITE
         set(value) {
@@ -90,6 +97,23 @@ class IconButton(context: Context, icon: Int, color: Int = 0xFF3A3658.toInt()) :
         paint.color = tint
         stroke.color = tint
         stroke.strokeWidth = s * 0.075f
+
+        val ph = photo
+        if (ph != null && icon == CAMERA) {
+            // foto redonda; o anel na cor do botão mostra o estado (gravando, pausado...)
+            path.reset()
+            path.addCircle(w / 2, h / 2, s / 2, Path.Direction.CW)
+            canvas.save()
+            canvas.clipPath(path)
+            paint.isFilterBitmap = true
+            rect.set(0f, 0f, w, h)
+            canvas.drawBitmap(ph, null, rect, paint)
+            canvas.restore()
+            stroke.color = circleColor or 0xFF000000.toInt()
+            stroke.strokeWidth = s * 0.06f
+            canvas.drawCircle(w / 2, h / 2, s / 2 - s * 0.03f, stroke)
+            return
+        }
 
         when (icon) {
             REC -> {

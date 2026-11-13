@@ -8,7 +8,8 @@ Gravador de tela para Android. **Sem marca d’água**, grava por cima de qualqu
 - **Bolha flutuante** por cima dos apps **antes e depois** de gravar. Você começa a gravar de qualquer lugar, sem abrir o Gravalix
 - A bolha **some durante a gravação**, então nunca aparece no vídeo. Ela volta quando você para
 - A bolha **fica só nas laterais** da tela e tem uma **lixeira** para tirá-la sem abrir o app
-- **Bolha personalizável**: tamanho, opacidade, cor e quais botões aparecem no menu
+- **Bolha personalizável**: **foto sua como ícone da bolha**, tamanho, opacidade, cor e quais botões aparecem no menu
+- Se quiser a bolha **visível no vídeo** (com a sua foto, como um logo), é só trocar o modo em Configurações
 - **Caneta**: desenhe ou circule coisas na tela enquanto grava. O desenho aparece no vídeo
 - **Mostrar toques** do próprio app: um círculo no que você toca, visível no vídeo
 - **Contagem configurável**: sem contagem, 3, 5 ou 10 segundos
@@ -22,7 +23,7 @@ Gravador de tela para Android. **Sem marca d’água**, grava por cima de qualqu
 
 Precisa de Android 10 ou mais novo.
 
-1. No celular, abra: **https://github.com/playerzin13mv/gravalix/releases/latest**
+1. No celular, abra: **https://github.com/playerzin13mv/gravalix-app/releases/latest**
 2. Toque em **Gravalix.apk** para baixar.
 3. Abra o arquivo baixado (pelo aviso do navegador, pelo app **Arquivos** ou pelo **ZArchiver**) e toque em **Instalar**.
 4. Se o Android avisar que o app não pode instalar de fontes desconhecidas, toque em **Configurações** e ative **Permitir desta fonte**. Depois volte e toque em Instalar.
@@ -47,7 +48,8 @@ Para atualizar, é só baixar o APK novo e instalar por cima. Seus vídeos não 
 - Toque nela para abrir o menu (ele abre para o lado de dentro da tela).
 - **Lixeira:** ao começar a arrastar a bolha, aparece uma lixeira embaixo. Solte a bolha em cima dela para tirá-la da tela, sem abrir o app. Para ela voltar, ligue **Bolha flutuante** no Gravalix.
 - **Durante a gravação a bolha some.** Pare pela notificação, pelo painel rápido ou agitando o celular. Quando a gravação termina, ela volta.
-- Em **Configurações → Personalizar a bolha** você muda o tamanho, a opacidade, a cor e quais botões aparecem.
+- Em **Configurações → Personalizar a bolha** você escolhe uma **foto para o ícone da bolha** (**Escolher foto**; **Usar o ícone padrão** volta ao original) e muda tamanho, opacidade, cor e quais botões aparecem.
+- Quer que a bolha **apareça na gravação**, por exemplo com a sua foto? Em **Configurações → Bolha durante a gravação**, escolha **Fica visível no vídeo**. Nesse modo o menu também aparece no vídeo quando você o abre.
 
 | Botão | O que faz |
 | --- | --- |
